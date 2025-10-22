@@ -1,4 +1,3 @@
-// src/app/dashboard/page.tsx
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -59,6 +58,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const loadData = async () => {
@@ -82,6 +82,20 @@ export default function DashboardPage() {
     loadData();
   }, []);
 
+  const handleComputerDeleted = (deletedComputerId: string) => {
+    setAllComputers(prev => prev.filter(c => c.id !== deletedComputerId));
+    setTotalTasks(prev => {
+      const deletedComputer = allComputers.find(c => c.id === deletedComputerId);
+      return prev - (deletedComputer?.taskCount || 0);
+    });
+  };
+
+  const handleComputerRenamed = (computerId: string, newName: string) => {
+    setAllComputers(prev => prev.map(c => 
+      c.id === computerId ? { ...c, name: newName } : c
+    ));
+  };
+
   const filteredComputers = useMemo(() => {
     if (!searchTerm) {
       return allComputers;
@@ -91,7 +105,8 @@ export default function DashboardPage() {
       computer.name.toLowerCase().includes(lowerCaseSearch) ||
       (computer.os && computer.os.toLowerCase().includes(lowerCaseSearch))
     );
-  }, [allComputers, searchTerm]); // Dependency คือ allComputers และ searchTerm
+  }, [allComputers, searchTerm]);
+
 
   const onlineCount = allComputers.filter(c => c.status === 'online').length;
   const offlineCount = allComputers.length - onlineCount;
@@ -107,7 +122,14 @@ export default function DashboardPage() {
       <ComputerGrid
         computers={filteredComputers}
         searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={(value) => {
+          setSearchTerm(value);
+          setCurrentPage(1);
+        }}
+        onComputerDeleted={handleComputerDeleted}
+        onComputerRenamed={handleComputerRenamed}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
       />
     </div>
   );

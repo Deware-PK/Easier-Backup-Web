@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function LoginPage() {
-
   const router = useRouter();
 
   // --- State Management ---
@@ -25,6 +25,8 @@ export default function LoginPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setApiError('');
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'; 
+
 
     if (!validateEmail(email)) {
       setEmailError('Please enter a valid email address.');
@@ -35,7 +37,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/v1/users/login', {
+      const response = await fetch(`${backendUrl}/api/v1/users/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -45,26 +47,54 @@ export default function LoginPage() {
 
       const data = await response.json();
 
+      console.log('Response data:', JSON.stringify(data));
+
       if (!response.ok) {
         throw new Error(data.message || 'Something went wrong');
       }
 
-      // --- Login successfully ---
-      console.log('Login successful:', data);
-      Cookies.set('SESSION_TOKEN__DO_NOT_SHARE', data.token, { 
+      Cookies.set('SESSION_TOKEN__DO_NOT_SHARE', data.token, {
         expires: 1,
-        path: '/'
+        path: '/',
+        sameSite: 'lax',
       });
-      localStorage.setItem('username', JSON.stringify(data.username).toString().replace(/"/g, ''));
-      
-      router.push('/home');
-      
-    } catch (error: any) {
+      const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+      Cookies.set('SESSION_EXPIRES_AT', String(expiresAt), {
+        expires: 1,
+        path: '/',
+        sameSite: 'lax',
+      });
 
+      localStorage.setItem('username', JSON.stringify(data.username).toString().replace(/"/g, ''));
+
+      try {
+        const statusRes = await fetch(`${backendUrl}/api/v1/auth/recovery-codes-status`, {
+          headers: { Authorization: `Bearer ${data.token}` },
+        });
+
+        if (!statusRes.ok) {
+          throw new Error('Failed to check recovery codes status');
+        }
+
+        const status = await statusRes.json();
+        console.log('Recovery codes status:', status);
+
+        if (status.recovery_codes_viewed === false) {
+          router.push('/recovery-codes');
+        } else {
+          router.push('/home');
+        }
+        
+      } catch (statusErr) {
+        console.error('Failed to fetch recovery status:', statusErr);
+
+        // fallback
+        router.push('/home');
+      }
+
+    } catch (error: any) {
       console.error('Login failed:', error);
       setApiError(error.message);
-
-    } finally {
       setIsLoading(false);
     }
   };
@@ -137,7 +167,7 @@ export default function LoginPage() {
               >
                 Password
               </label>
-              <a href="#" className="text-sm text-orange-400 hover:text-orange-300 font-medium">
+              <a href="/forgot-password" className="text-sm text-orange-400 hover:text-orange-300 font-medium">
                 Forgot password?
               </a>
             </div>
@@ -174,9 +204,9 @@ export default function LoginPage() {
           <div>
             <p className="text-center text-sm text-gray-400">
               Don't have an account?{' '}
-              <a href="#" className="text-orange-400 hover:text-orange-300 font-medium">
+              <Link href="/register" className="text-orange-400 hover:text-orange-300 font-medium">
                 Sign up
-              </a>
+              </Link>
             </p>
           </div>
         </form>

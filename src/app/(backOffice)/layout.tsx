@@ -1,5 +1,6 @@
 import Navbar from "../components/Navbar";
 import type { Metadata } from "next";
+import SessionWatcher from "../components/SessionWatcher";
 
 export const metadata: Metadata = {
   title: "Easier Backup - Management",
@@ -15,6 +16,7 @@ export default function BackOfficeLayout({ children }: Readonly<{
   return (
     <div>
       <Navbar />
+      <SessionWatcher />
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
           {children}
       </main>

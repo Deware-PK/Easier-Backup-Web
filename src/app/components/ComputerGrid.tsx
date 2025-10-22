@@ -1,24 +1,39 @@
-// src/components/ComputerGrid.tsx
 import ComputerCard, { type Computer } from './ComputerCard';
-// import { useState } from 'react'; // 👈 ไม่จำเป็นต้องใช้ useState อีกต่อไป
+import Pagination from './Pagination';
+import { useMemo } from 'react';
 
 interface ComputerGridProps {
   computers: Computer[];
-  searchTerm: string; // 👈 1. รับ searchTerm มา
-  onSearchChange: (value: string) => void; // 👈 2. รับฟังก์ชันสำหรับอัปเดต searchTerm
+  searchTerm: string;
+  onSearchChange: (value: string) => void; 
+  onComputerDeleted?: (computerId: string) => void;
+  onComputerRenamed?: (computerId: string, newName: string) => void;
+  currentPage: number;
+  onPageChange: (page: number) => void;
 }
 
-export default function ComputerGrid({ computers, searchTerm, onSearchChange }: ComputerGridProps) {
-  // const [localSearchTerm, setLocalSearchTerm] = useState(''); // 👈 3. ลบ State นี้ออก
+const ITEMS_PER_PAGE = 16;
 
-  // ฟังก์ชันนี้จะถูกเรียกเมื่อมีการกดปุ่ม
+export default function ComputerGrid({ 
+  computers, 
+  searchTerm, 
+  onSearchChange, 
+  onComputerDeleted, 
+  onComputerRenamed,
+  currentPage,
+  onPageChange
+}: ComputerGridProps) {
+
+  // Calculate pagination
+  const totalPages = Math.ceil(computers.length / ITEMS_PER_PAGE);
+  const paginatedComputers = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return computers.slice(startIndex, endIndex);
+  }, [computers, currentPage]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // ในวิธีนี้ เราไม่ได้ต้องการให้ Search ทำงานแค่ตอน Enter
-    // เพราะ onSearchChange จะถูกเรียกทุกครั้งที่พิมพ์อยู่แล้ว
-    // ถ้าคุณยังต้องการให้กด Enter เพื่อ trigger การ search เท่านั้น
-    // คุณจะต้องเพิ่ม state เพิ่มเติมใน DashboardPage สำหรับ "committedSearchTerm"
-    // แต่สำหรับตอนนี้ เราจะให้ Search ทำงานแบบ Real-time ตามที่คุณพิมพ์ครับ
-    // ถ้าคุณอยากให้กด Enter เท่านั้น บอกได้นะครับ จะปรับ Logic ให้
+    // Real-time search ทำงานแล้วตอนพิมพ์
   };
 
   return (
@@ -29,9 +44,12 @@ export default function ComputerGrid({ computers, searchTerm, onSearchChange }: 
           <input
             type="search"
             placeholder="Search by name or OS..."
-            value={searchTerm} // 👈 4. ผูกค่าเข้ากับ Prop `searchTerm`
-            onChange={(e) => onSearchChange(e.target.value)} // 👈 5. เรียก onSearchChange ทันทีเมื่อพิมพ์
-            onKeyDown={handleKeyDown} // 👈 6. onKeyDown ยังคงอยู่แต่ตอนนี้อาจจะไม่มีผลอะไร ถ้าต้องการแบบ Real-time
+            value={searchTerm}
+            onChange={(e) => {
+              onSearchChange(e.target.value);
+              onPageChange(1); // Reset to page 1 when searching
+            }}
+            onKeyDown={handleKeyDown}
             className="mr-2 px-3 py-2 border rounded-md border-gray-600 bg-gray-700 text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 w-full md:w-64"
           />
           <button className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 whitespace-nowrap">
@@ -45,11 +63,26 @@ export default function ComputerGrid({ computers, searchTerm, onSearchChange }: 
           {searchTerm ? 'No computers found matching your search.' : 'No computers registered yet.'}
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {computers.map((computer) => (
-            <ComputerCard key={computer.id} computer={computer} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {paginatedComputers.map((computer) => (
+              <ComputerCard 
+                key={computer.id} 
+                computer={computer}
+                onDelete={onComputerDeleted}
+                onRename={onComputerRenamed}
+              />
+            ))}
+          </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+            itemsPerPage={ITEMS_PER_PAGE}
+            totalItems={computers.length}
+          />
+        </>
       )}
     </div>
   );

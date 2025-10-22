@@ -8,3 +8,13 @@ body {
   transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
   font-family: var(--font-poppins);
 }
+
+@layer components {
+  .label-text { @apply block text-sm font-medium text-gray-300 mb-1; }
+  .input-field { @apply block w-full px-3 py-2 border border-gray-600 bg-gray-700 text-gray-200 rounded-md placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm; }
+  .link-text { @apply text-xs text-blue-400 hover:underline mt-1 block; }
+  .section-title { @apply text-lg font-medium mb-3 border-b border-gray-600 pb-1 pt-2; }
+  .description-text { @apply text-xs text-gray-400 mb-3 -mt-2; }
+  .button-primary { @apply px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors; }
+  .button-secondary { @apply px-4 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors; }
+}

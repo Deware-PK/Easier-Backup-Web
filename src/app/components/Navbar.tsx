@@ -15,6 +15,8 @@ export default function Navbar() {
 
   const handleLogout = () => {
     Cookies.remove('SESSION_TOKEN__DO_NOT_SHARE');
+    Cookies.remove('SESSION_EXPIRES_AT');
+    localStorage.removeItem('username');
     window.location.href = '/login';
   };
 
@@ -45,7 +47,7 @@ export default function Navbar() {
 
           {/* เมนูสำหรับหน้าจอขนาดใหญ่ */}
           <div className="hidden md:flex items-center space-x-6">
-            <Link href="/dashboard" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">Dashboard</Link>
+            <Link href="/home" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">Home</Link>
             <Link href="/tasks" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">Tasks</Link>
             <Link href="/reports" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">Reports</Link>
             <span className="text-xl text-gray-400">|</span>
