@@ -6,12 +6,18 @@ import { useState, useEffect, useRef } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa'; // ตัวอย่างจาก Font Awesome
 import { TiCloudStorage } from "react-icons/ti";
 import { MdKeyboardArrowDown } from "react-icons/md";
+// MARK: ADMIN - add
+import { useRouter } from 'next/navigation';
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const userName = localStorage.getItem('username');
+  // MARK: ADMIN - add
+  const [isAdmin, setIsAdmin] = useState(false);
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+  const router = useRouter();
 
   const handleLogout = () => {
     Cookies.remove('SESSION_TOKEN__DO_NOT_SHARE');
@@ -32,6 +38,22 @@ export default function Navbar() {
     };
   }, [userMenuRef]);
 
+  // MARK: ADMIN - detect admin by calling /api/v1/admin/stats
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const token = Cookies.get('SESSION_TOKEN__DO_NOT_SHARE');
+        if (!token) return;
+        const res = await fetch(`${backendUrl}/api/v1/admin/stats`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) setIsAdmin(true);
+        // 403/401 -> not admin; do nothing
+      } catch {}
+    };
+    checkAdmin();
+  }, [backendUrl]);
+
   return (
     <nav className="bg-gray-800 text-white shadow-lg relative">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -50,8 +72,14 @@ export default function Navbar() {
             <Link href="/home" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">Home</Link>
             <Link href="/tasks" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">Tasks</Link>
             <Link href="/reports" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">Reports</Link>
+            {/* MARK: ADMIN - show Audit Logs when admin */}
+            {isAdmin && (
+              <Link href="/audit-logs" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
+                Audit Logs
+              </Link>
+            )}
             <span className="text-xl text-gray-400">|</span>
-            <div className="relative ml-auto" ref={userMenuRef}> {/* 👈 เพิ่ม relative และ ref */}
+            <div className="relative ml-auto" ref={userMenuRef}>
               {/* ปุ่มเปิด/ปิด Dropdown */}
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -61,10 +89,8 @@ export default function Navbar() {
                 <MdKeyboardArrowDown className={`text-xl cursor-pointer transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} /> {/* หมุนลูกศร */}
               </button>
 
-
               {isUserMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50"> {/* 👈 จัดตำแหน่งและสไตล์ Dropdown */}
-
                   <button
                     onClick={handleLogout}
                     className="block w-full text-left px-4 py-2 text-sm hover:bg-red-400/20 hover:text-red-700"
@@ -94,7 +120,13 @@ export default function Navbar() {
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <Link href="/dashboard" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">Dashboard</Link>
             <Link href="/tasks" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">Tasks</Link>
-            <Link href="/reports" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">Reports</Link>
+            <Link href="/reports" className="block px-3 py-2 rounded-md textbase font-medium text-gray-300 hover:bg-gray-700 hover:text-white">Reports</Link>
+            {/* MARK: ADMIN - show on mobile */}
+            {isAdmin && (
+              <Link href="/audit-logs" className="block px-3 py-2 rounded-md textbase font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
+                Audit Logs
+              </Link>
+            )}
           </div>
 
           {/* ส่วน User Info และ Logout */}
