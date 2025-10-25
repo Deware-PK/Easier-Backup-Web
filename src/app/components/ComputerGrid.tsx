@@ -50,9 +50,16 @@ export default function ComputerGrid({
             onKeyDown={handleKeyDown}
             className="mr-2 px-3 py-2 border rounded-md border-gray-600 bg-gray-700 text-gray-300 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 w-full md:w-64"
           />
-          <button className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 whitespace-nowrap">
+          {/* <button className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 whitespace-nowrap">
             Add New
-          </button>
+          </button> */}
+          <a
+            href="/downloads/EasierBackup.zip"
+            download
+            className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 whitespace-nowrap"
+          >
+            Add New
+          </a>
         </div>
       </div>
       

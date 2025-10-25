@@ -161,10 +161,31 @@ export default function TasksPage() {
   const handleToggleActive = async (taskId: string, currentStatus: boolean) => {
     if (!confirm(`Are you sure you want to ${currentStatus ? 'disable' : 'enable'} this task?`)) return;
 
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) {
+      alert('Task not found');
+      return;
+    }
+
+
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     const url = `${backendUrl}/api/v1/tasks/${taskId}`;
 
-    const payload = { is_active: !currentStatus };
+    const payload = {
+      name: task.name,
+      source_path: task.source_path,
+      destination_path: task.destination_path,
+      schedule: task.schedule,
+      is_active: !currentStatus,
+      backup_keep_count: task.backup_keep_count,
+      retry_attempts: task.retry_attempts,
+      retry_delay_seconds: task.retry_delay_seconds,
+      folder_prefix: task.folder_prefix,
+      timestamp_format: task.timestamp_format,
+      discord_webhook_url: task.discord_webhook_url,
+      notification_on_success: task.notification_on_success,
+      notification_on_failure: task.notification_on_failure,
+    };
 
     try {
       const res = await fetch(url, {
