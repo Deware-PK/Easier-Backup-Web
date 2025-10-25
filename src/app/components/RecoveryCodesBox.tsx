@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
 import { MdContentCopy, MdCheckCircle, MdWarning } from 'react-icons/md';
 
 interface RecoveryCodesResponse {
   codes: string[];
+}
+
+interface RecoveryCodesStatusResponse {
+  recovery_codes_viewed: boolean;
+  has_active_codes: boolean;
+  active_codes_count: number;
 }
 
 const COUNTDOWN_DURATION = 30;
@@ -25,32 +30,23 @@ export default function RecoveryCodesBox() {
 
   useEffect(() => {
     const fetchCodes = async () => {
-
-      const token = Cookies.get('SESSION_TOKEN__DO_NOT_SHARE');
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-
       try {
         const statusRes = await fetch(`${backendUrl}/api/v1/auth/recovery-codes-status`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
         });
         if (!statusRes.ok) throw new Error('Failed to check recovery codes status');
-        const status = await statusRes.json();
+        const status: RecoveryCodesStatusResponse = await statusRes.json();
 
-        if (status.viewed === true) {
+        if (status.recovery_codes_viewed === true) {
           router.push('/home');
           return;
         }
         const codesRes = await fetch(`${backendUrl}/api/v1/auth/recovery-codes`, {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
         });
 
         if (!codesRes.ok) {
@@ -60,9 +56,10 @@ export default function RecoveryCodesBox() {
         const codesData: RecoveryCodesResponse = await codesRes.json();
         setCodes(codesData.codes);
 
-      } catch (err: any) {
+      } catch (err: unknown) { // FIX: no-explicit-any
         console.error('❌ Error:', err);
-        setError(err.message || 'Failed to load recovery codes');
+        const msg = err instanceof Error ? err.message : 'Failed to load recovery codes';
+        setError(msg);
       } finally {
         setIsLoading(false);
       }
@@ -71,41 +68,34 @@ export default function RecoveryCodesBox() {
     fetchCodes();
   }, [router]);
 
-  // MARK: TIMER - เริ่มนับหลังโหลดเสร็จ
-  useEffect(() => {
-    if (isLoading) return;
-
-    if (timeLeft === 0) {
-      markAsViewedAndRedirect();
-      return;
-    }
-
-    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft, isLoading]);
-
-  const markAsViewedAndRedirect = async () => {
+  const markAsViewedAndRedirect = useCallback(async () => {
     if (hasMarkedViewed.current) return;
     hasMarkedViewed.current = true;
-
-    const token = Cookies.get('SESSION_TOKEN__DO_NOT_SHARE');
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-
     try {
       await fetch(`${backendUrl}/api/v1/auth/recovery-codes-viewed`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ viewed: MARK_VIEWED_VALUE }),
+        credentials: 'include',
       });
     } catch (err) {
       console.error('❌ Failed to mark as viewed:', err);
     } finally {
       router.push('/login');
     }
-  };
+  }, [router]);
+
+  // timer effect
+  useEffect(() => {
+    if (isLoading) return;
+    if (timeLeft === 0) {
+      markAsViewedAndRedirect();
+      return;
+    }
+    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [timeLeft, isLoading, markAsViewedAndRedirect]); // FIX: add dependency
 
   const handleCopyToClipboard = async () => {
     const codesText = codes.join(', ');
@@ -160,7 +150,7 @@ export default function RecoveryCodesBox() {
             Recovery Codes
           </h1>
           <p className="text-gray-400 text-sm">
-            Save these codes in a secure location. You'll need them to recover your account.
+            Save these codes in a secure location. You&apos;ll need them to recover your account. {/* FIX apostrophe */}
           </p>
         </div>
 

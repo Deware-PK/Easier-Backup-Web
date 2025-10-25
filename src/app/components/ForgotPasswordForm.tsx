@@ -52,8 +52,9 @@ export default function ForgotPasswordForm() {
       }
 
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong. Please try again later.');
+    } catch (err: unknown) { // MARK: FIX(any)->unknown
+      const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again later.';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }

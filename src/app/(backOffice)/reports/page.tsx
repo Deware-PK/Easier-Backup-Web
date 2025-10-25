@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import ReportsOverview from '../../components/ReportCard';
 import BackupJobCard, { type BackupJob } from '../../components/ReportGrid';
 import Pagination from '../../components/Pagination';
-import Cookies from 'js-cookie';
+// import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { type Task } from '../../components/TaskCard';
 
@@ -15,39 +15,21 @@ interface JobWithTaskInfo extends BackupJob {
 }
 
 const fetchReportsData = async (): Promise<{ jobs: JobWithTaskInfo[], tasks: Task[] }> => {
-  const token = Cookies.get('SESSION_TOKEN__DO_NOT_SHARE');
-  if (!token) throw new Error('No authentication token found.');
-
-  const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
-
+  const headers = { 'Content-Type': 'application/json' };
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
   try {
-    // ดึงข้อมูล tasks ก่อนเพื่อใช้ในการ map ชื่อ
-    const tasksRes = await fetch(`${backendUrl}/api/v1/tasks/user`, { headers });
-    
-    if (tasksRes.status === 401) {
-      throw new Error('Authentication failed (401)');
-    }
-
-    if (!tasksRes.ok) {
-      throw new Error(`Failed to fetch tasks: ${tasksRes.statusText}`);
-    }
+    const tasksRes = await fetch(`${backendUrl}/api/v1/tasks/user`, { credentials: 'include' });
+    if (tasksRes.status === 401) throw new Error('Authentication failed (401)');
+    if (!tasksRes.ok) throw new Error(`Failed to fetch tasks: ${tasksRes.statusText}`);
 
     const tasks: Task[] = await tasksRes.json();
 
-    // ดึงข้อมูล jobs จาก task แต่ละตัว
     const jobsPromises = tasks.map(task =>
       fetch(`${backendUrl}/api/v1/jobs/task/${task.id}`, { headers })
-        .then(res => res.ok ? res.json() : [])
-        .then((jobs: BackupJob[]) => 
-          jobs.map(job => ({
-            ...job,
-            taskName: task.name
-          }))
+        .then(res => (res.ok ? res.json() : []))
+        .then((jobs: BackupJob[]) =>
+          jobs.map(job => ({ ...job, taskName: task.name }))
         )
         .catch(() => [])
     );
@@ -55,16 +37,15 @@ const fetchReportsData = async (): Promise<{ jobs: JobWithTaskInfo[], tasks: Tas
     const jobsArrays = await Promise.all(jobsPromises);
     const allJobs = jobsArrays.flat();
 
-    // เรียงตามเวลาเริ่มต้นล่าสุด
-    allJobs.sort((a, b) => 
+    allJobs.sort((a, b) =>
       new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
     );
 
     return { jobs: allJobs, tasks };
 
-  } catch (error) {
-    console.error("API Fetch Error:", error);
-    throw error;
+  } catch (error: unknown) { // MARK: FIX(any)->unknown
+    console.error('API Fetch Error:', error); // removed unused eslint-disable
+    throw error instanceof Error ? error : new Error('Failed to load reports data');
   }
 };
 
@@ -86,12 +67,10 @@ export default function ReportsPage() {
         const { jobs: fetchedJobs, tasks: fetchedTasks } = await fetchReportsData();
         setJobs(fetchedJobs);
         setTasks(fetchedTasks);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load reports data.');
-        console.error(err);
-
-        if (err.message?.includes('401') || err.message?.includes('token')) {
-          Cookies.remove('SESSION_TOKEN__DO_NOT_SHARE');
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Failed to load reports data.';
+        setError(msg);
+        if (msg.includes('401') || msg.includes('token')) {
           router.push('/login');
         }
       } finally {
@@ -109,7 +88,6 @@ export default function ReportsPage() {
     });
   }, [jobs, statusFilter, taskFilter]);
 
-  // Pagination
   const totalPages = Math.ceil(filteredJobs.length / ITEMS_PER_PAGE);
   const paginatedJobs = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -144,7 +122,7 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-2xl font-semibold text-white">Backup Reports</h1>
-        
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <select
@@ -164,7 +142,8 @@ export default function ReportsPage() {
           <select
             value={statusFilter}
             onChange={(e) => {
-              setStatusFilter(e.target.value as any);
+              // MARK: FIX(any)->narrow to union
+              setStatusFilter(e.target.value as 'all' | 'success' | 'failed' | 'running');
               setCurrentPage(1);
             }}
             className="px-3 py-2 border rounded-md border-gray-600 bg-gray-700 text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -186,8 +165,8 @@ export default function ReportsPage() {
 
       {filteredJobs.length === 0 ? (
         <p className="text-gray-400 text-center py-10">
-          {jobs.length === 0 
-            ? 'No backup jobs found yet.' 
+          {jobs.length === 0
+            ? 'No backup jobs found yet.'
             : 'No jobs match the selected filters.'}
         </p>
       ) : (

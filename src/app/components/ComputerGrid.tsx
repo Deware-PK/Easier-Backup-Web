@@ -32,9 +32,7 @@ export default function ComputerGrid({
     return computers.slice(startIndex, endIndex);
   }, [computers, currentPage]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Real-time search ทำงานแล้วตอนพิมพ์
-  };
+  const handleKeyDown = () => {}; // FIX: remove unused param to satisfy @typescript-eslint/no-unused-vars
 
   return (
     <div>

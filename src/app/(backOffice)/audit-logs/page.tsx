@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Cookies from 'js-cookie';
+// import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import Pagination from '../../components/Pagination'; // MARK: reuse existing component
 
@@ -12,14 +12,20 @@ type AuditLog = {
   ip_address?: string | null;
   user_agent?: string | null;
   created_at: string | Date;
-  // Allow extra fields from backend safely
-  [key: string]: any;
+  [key: string]: unknown; // MARK: FIX(any)->unknown
 };
 
+type PagedLogs = {
+  logs?: AuditLog[];
+  items?: AuditLog[];
+  total?: number;
+  page?: number;
+  limit?: number;
+}; // MARK: ADD - normalize type
+
 type LogsResponse =
-  | { logs: AuditLog[]; total: number; page: number; limit: number }
-  | { items: AuditLog[]; total: number; page: number; limit: number }
-  | AuditLog[]; // fallback if backend returns array only
+  | PagedLogs
+  | AuditLog[]; // MARK: keep fallback
 
 type StatsResponse = {
   totalUsers: number;
@@ -51,17 +57,12 @@ export default function AuditLogsPage() {
   // MARK: fetch stats to verify admin and show header metrics
   useEffect(() => {
     const init = async () => {
-      const token = Cookies.get('SESSION_TOKEN__DO_NOT_SHARE');
-      if (!token) {
-        router.push('/login');
-        return;
-      }
       try {
         const s = await fetch(`${backendUrl}/api/v1/admin/stats`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
         });
         if (s.status === 401) {
-          Cookies.remove('SESSION_TOKEN__DO_NOT_SHARE');
           router.push('/login');
           return;
         }
@@ -72,10 +73,11 @@ export default function AuditLogsPage() {
         if (!s.ok) {
           throw new Error('Failed to load admin stats');
         }
-        const statsJson = (await s.json()) as StatsResponse;
+        const statsJson: StatsResponse = await s.json();
         setStats(statsJson);
-      } catch (e: any) {
-        setError(e.message || 'Failed to load admin stats');
+      } catch (e: unknown) { // MARK: FIX(any)->unknown
+        const msg = e instanceof Error ? e.message : 'Failed to load admin stats';
+        setError(msg);
       }
     };
     init();
@@ -84,8 +86,6 @@ export default function AuditLogsPage() {
   // MARK: fetch logs when filters/pagination change
   useEffect(() => {
     const loadLogs = async () => {
-      const token = Cookies.get('SESSION_TOKEN__DO_NOT_SHARE');
-      if (!token) return;
       setLoading(true);
       setError(null);
       try {
@@ -97,11 +97,11 @@ export default function AuditLogsPage() {
         if (ipAddress.trim()) params.set('ip_address', ipAddress.trim());
 
         const res = await fetch(`${backendUrl}/api/v1/admin/audit-logs?${params.toString()}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
         });
 
         if (res.status === 401) {
-          Cookies.remove('SESSION_TOKEN__DO_NOT_SHARE');
           router.push('/login');
           return;
         }
@@ -113,20 +113,24 @@ export default function AuditLogsPage() {
           throw new Error('Failed to load audit logs');
         }
 
-        const data: LogsResponse = await res.json();
+        const json: LogsResponse | AuditLog[] = await res.json(); // MARK: type-safe
+        let items: AuditLog[] = [];
+        let totalCount = 0;
 
-        // MARK: normalize response
-        if (Array.isArray(data)) {
-          setLogs(data);
-          setTotal(page * limit + (data.length === limit ? limit : data.length)); // best-effort
+        if (Array.isArray(json)) {
+          items = json;
+          totalCount = items.length;
         } else {
-          const items = (data as any).logs ?? (data as any).items ?? [];
-          const totalCount = (data as any).total ?? items.length;
-          setLogs(items);
-          setTotal(totalCount);
+          const obj: PagedLogs = json;
+          items = obj.logs ?? obj.items ?? [];
+          totalCount = typeof obj.total === 'number' ? obj.total : items.length;
         }
-      } catch (e: any) {
-        setError(e.message || 'Failed to load audit logs');
+
+        setLogs(items);
+        setTotal(totalCount);
+      } catch (e: unknown) { // MARK: FIX(any)->unknown
+        const msg = e instanceof Error ? e.message : 'Failed to load audit logs';
+        setError(msg);
       } finally {
         setLoading(false);
       }
@@ -261,7 +265,7 @@ export default function AuditLogsPage() {
                     <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-300">
                       {log.ip_address || '-'}
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-400 max-w-[24rem] truncate" title={log.user_agent || ''}>
+                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-400 max-w-[24rem] truncate" title={(log.user_agent || '') as string}>
                       {log.user_agent || '-'}
                     </td>
                   </tr>

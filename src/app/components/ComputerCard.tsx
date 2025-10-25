@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { FaServer, FaTasks } from 'react-icons/fa';
 import { FaTrashAlt } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
-import Cookies from 'js-cookie';
 
 export interface Computer {
   id: string;
@@ -62,15 +61,14 @@ export default function ComputerCard({ computer, onDelete, onRename }: ComputerC
     setIsRenaming(true);
     setApiError('');
 
-    const token = Cookies.get('SESSION_TOKEN__DO_NOT_SHARE');
-    if (!token) {
-      setApiError('No authentication token found. Please log in again.');
-      setIsRenaming(false);
-      return;
-    }
+    // const token = Cookies.get('SESSION_TOKEN__DO_NOT_SHARE');
+    // if (!token) {
+    //   setApiError('No authentication token found. Please log in again.');
+    //   setIsRenaming(false);
+    //   return;
+    // }
   
     const headers = { 
-      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     };
 
@@ -78,7 +76,8 @@ export default function ComputerCard({ computer, onDelete, onRename }: ComputerC
       const response = await fetch(`${backendUrl}/api/v1/computers/${computer.id}`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify({ name: newName.trim() })
+        body: JSON.stringify({ name: newName.trim() }),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -112,19 +111,20 @@ export default function ComputerCard({ computer, onDelete, onRename }: ComputerC
     setIsDeleting(true);
     setApiError('');
 
-    const token = Cookies.get('SESSION_TOKEN__DO_NOT_SHARE');
-    if (!token) {
-      setApiError('No authentication token found. Please log in again.');
-      setIsDeleting(false);
-      return;
-    }
-  
-    const headers = { 'Authorization': `Bearer ${token}` };
+    // const token = Cookies.get('SESSION_TOKEN__DO_NOT_SHARE');
+    // if (!token) {
+    //   setApiError('No authentication token found. Please log in again.');
+    //   setIsDeleting(false);
+    //   return;
+    // }
+
+    const headers = { 'Content-Type': 'application/json' };
 
     try {
       const response = await fetch(`${backendUrl}/api/v1/computers/${computer.id}`, {
         method: 'DELETE',
         headers,
+        credentials: 'include',
       });
 
       if (!response.ok) {

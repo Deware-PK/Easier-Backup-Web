@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
+// import Cookies from 'js-cookie';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -39,62 +39,44 @@ export default function LoginPage() {
     try {
       const response = await fetch(`${backendUrl}/api/v1/users/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',            // DEV/PROD: ต้องใส่ เพื่อให้รับ Set-Cookie และแนบ cookie
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
-      console.log('Response data:', JSON.stringify(data));
-
       if (!response.ok) {
         throw new Error(data.message || 'Something went wrong');
       }
 
-      Cookies.set('SESSION_TOKEN__DO_NOT_SHARE', data.token, {
-        expires: 1,
-        path: '/',
-        sameSite: 'lax',
-      });
-      const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
-      Cookies.set('SESSION_EXPIRES_AT', String(expiresAt), {
-        expires: 1,
-        path: '/',
-        sameSite: 'lax',
-      });
-
-      localStorage.setItem('username', JSON.stringify(data.username).toString().replace(/"/g, ''));
-
-      try {
-        const statusRes = await fetch(`${backendUrl}/api/v1/auth/recovery-codes-status`, {
-          headers: { Authorization: `Bearer ${data.token}` },
-        });
-
-        if (!statusRes.ok) {
-          throw new Error('Failed to check recovery codes status');
-        }
-
-        const status = await statusRes.json();
-        console.log('Recovery codes status:', status);
-
-        if (status.recovery_codes_viewed === false) {
-          router.push('/recovery-codes');
-        } else {
-          router.push('/home');
-        }
-        
-      } catch (statusErr) {
-        console.error('Failed to fetch recovery status:', statusErr);
-
-        // fallback
-        router.push('/home');
+      if (data.username) {
+        sessionStorage.setItem('username', data.username);
       }
 
-    } catch (error: any) {
+      // ใช้ cookie ที่ browser เก็บให้ แทน Authorization header
+      const statusRes = await fetch(`${backendUrl}/api/v1/auth/recovery-codes-status`, {
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',            // สำคัญ: แนบ cookie ข้ามพอร์ต
+      });
+
+      if (!statusRes.ok) {
+        throw new Error('Failed to check recovery codes status');
+      }
+
+      const status = await statusRes.json();
+      console.log('Recovery codes status:', status);
+
+      if (status.recovery_codes_viewed === false) {
+        router.push('/recovery-codes');
+      } else {
+        router.push('/home');
+      }
+      
+    } catch (error: unknown) { // FIX: no-explicit-any
       console.error('Login failed:', error);
-      setApiError(error.message);
+      const msg = error instanceof Error ? error.message : 'Something went wrong';
+      setApiError(msg);
       setIsLoading(false);
     }
   };
@@ -203,7 +185,7 @@ export default function LoginPage() {
           </button>
           <div>
             <p className="text-center text-sm text-gray-400">
-              Don't have an account?{' '}
+              Don&apos;t have an account? {/* FIX: react/no-unescaped-entities */}
               <Link href="/register" className="text-orange-400 hover:text-orange-300 font-medium">
                 Sign up
               </Link>

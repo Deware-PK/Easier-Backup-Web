@@ -103,9 +103,10 @@ export default function RegisterForm() {
       router.push('/login?registered=1');
       return;
 
-    } catch (error: any) {
+    } catch (error: unknown) { // MARK: FIX(any)->unknown
       console.error('Registration failed:', error);
-      setApiError(error.message);
+      const msg = error instanceof Error ? error.message : 'Something went wrong';
+      setApiError(msg);
     } finally {
       setIsLoading(false);
     }
