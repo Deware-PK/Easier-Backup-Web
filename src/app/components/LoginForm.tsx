@@ -50,14 +50,9 @@ export default function LoginPage() {
         throw new Error(data.message || 'Something went wrong');
       }
 
-      if (data.username) {
-        sessionStorage.setItem('username', data.username);
-      }
-
-      // ใช้ cookie ที่ browser เก็บให้ แทน Authorization header
       const statusRes = await fetch(`${backendUrl}/api/v1/auth/recovery-codes-status`, {
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',            // สำคัญ: แนบ cookie ข้ามพอร์ต
+        credentials: 'include',
       });
 
       if (!statusRes.ok) {

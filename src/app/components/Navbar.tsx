@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { FaBars, FaTimes } from "react-icons/fa";
 import { TiCloudStorage } from "react-icons/ti";
 import { MdKeyboardArrowDown } from "react-icons/md";
+import Cookies from "js-cookie"; // MARK: ใช้ js-cookie อ่าน username
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -23,9 +24,7 @@ export default function Navbar() {
     try {
       const response = await fetch(`${backendUrl}/api/v1/users/logout`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
 
@@ -33,13 +32,13 @@ export default function Navbar() {
         console.warn('[Logout] API failed, but clearing local session anyway');
       }
 
-      sessionStorage.removeItem('username');
+      // MARK: ลบ cookie username ด้วย
+      Cookies.remove('SESSION_USERNAME');
       window.location.href = '/login';
       
     } catch (error) {
       console.error('[Logout] Error calling logout API:', error);
-      
-      sessionStorage.removeItem('username');
+      Cookies.remove('SESSION_USERNAME');
       window.location.href = '/login';
     }
   };
@@ -56,10 +55,11 @@ export default function Navbar() {
     };
   }, [userMenuRef]);
 
-  // MARK: FIX - อ่าน sessionStorage ใน useEffect (client-side only)
+  // MARK: FIX - อ่าน username จาก cookie แทน sessionStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setUserName(sessionStorage.getItem("username"));
+      const usernameFromCookie = Cookies.get('SESSION_USERNAME');
+      setUserName(usernameFromCookie || null);
     }
   }, []);
 
