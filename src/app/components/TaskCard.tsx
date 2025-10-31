@@ -1,6 +1,6 @@
 import React from 'react';
 import { FaPlay, FaEdit, FaToggleOn, FaToggleOff, FaTrash } from 'react-icons/fa';
-import { MdCheckCircle, MdError, MdSchedule, MdInfo } from 'react-icons/md';
+import { MdCheckCircle, MdError, MdSchedule, MdInfo, MdHourglassTop } from 'react-icons/md';
 
 export interface Task {
   id: string;
@@ -20,7 +20,7 @@ export interface Task {
   notification_on_success: string | null;
   notification_on_failure: string | null;
   computerName?: string;
-  lastJobStatus?: 'success' | 'failed' | 'running' | null;
+  lastJobStatus?: 'success' | 'failed' | 'running' | 'queued' | null;
 }
 
 interface TaskCardProps {
@@ -41,6 +41,10 @@ const StatusIndicator = ({ status }: { status: Task['lastJobStatus'] }) => {
    if (status === 'running') {
     return <span className="flex items-center text-xs text-yellow-400"><MdSchedule className="mr-1 animate-spin" /> Running</span>;
   }
+  if (status === 'queued') {
+    return <span className="flex items-center text-xs text-orange-500"><MdHourglassTop className="mr-1" /> Queued</span>;
+  }
+
   return <span className="flex items-center text-xs text-gray-500"><MdInfo className="mr-1" /> No recent job</span>;
 };
 
@@ -49,6 +53,7 @@ export default function TaskCard({ task, onStartNow, onEdit, onToggleActive, onD
     task.lastJobStatus === 'success' ? 'border-green-500' :
     task.lastJobStatus === 'failed' ? 'border-red-500' :
     task.lastJobStatus === 'running' ? 'border-blue-500' :
+    task.lastJobStatus === 'queued' ? 'border-orange-500' :
     'border-gray-600';
 
   const formattedCreatedAt = new Date(task.created_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });

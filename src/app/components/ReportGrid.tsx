@@ -1,12 +1,12 @@
 import React from 'react';
-import { MdCheckCircle, MdError, MdSchedule, MdAccessTime } from 'react-icons/md';
+import { MdCheckCircle, MdError, MdSchedule, MdAccessTime, MdHourglassTop } from 'react-icons/md';
 
 export interface BackupJob {
   id: string;
   task_id: string;
   started_at: string | Date;
   completed_at?: string | Date | null;
-  status: 'running' | 'success' | 'failed';
+  status: 'running' | 'success' | 'failed' | 'queued';
   error_message?: string | null;
   files_copied?: number | null;
   total_size_bytes?: number | null;
@@ -21,13 +21,15 @@ const StatusBadge = ({ status }: { status: BackupJob['status'] }) => {
   const styles = {
     success: 'bg-green-600 text-white',
     failed: 'bg-red-600 text-white',
-    running: 'bg-blue-600 text-white'
+    running: 'bg-blue-600 text-white',
+    queued: 'bg-orange-600 text-white'
   };
 
   const icons = {
     success: <MdCheckCircle className="w-4 h-4" />,
     failed: <MdError className="w-4 h-4" />,
-    running: <MdSchedule className="w-4 h-4 animate-spin" />
+    running: <MdSchedule className="w-4 h-4 animate-spin" />,
+    queued: <MdHourglassTop className="w-4 h-4" />
   };
 
   return (
@@ -64,7 +66,8 @@ export default function BackupJobCard({ job, taskName }: BackupJobCardProps) {
   const statusBorder = {
     success: 'border-green-500',
     failed: 'border-red-500',
-    running: 'border-blue-500'
+    running: 'border-blue-500',
+    queued: 'border-orange-500'
   }[job.status];
 
   const formattedStartTime = new Date(job.started_at).toLocaleString('th-TH', { 
