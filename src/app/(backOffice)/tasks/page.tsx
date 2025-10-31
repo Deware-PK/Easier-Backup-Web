@@ -153,9 +153,46 @@ export default function TasksPage() {
     }
   };
 
-  const handleStartNow = (taskId: string) => {
-    // MARK: USE taskId to avoid unused var warning
-    alert(`Start Task (${taskId}) is not implemented in the backend yet.`);
+  const handleStartNow = async (taskId: string) => {
+    if (!confirm('Are you sure you want to start this backup task now?')) return;
+
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+    const url = `${backendUrl}/api/v1/tasks/${taskId}/start-now`;
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const errorData: { message?: string; jobId?: string } = await res.json().catch(() => ({}));
+        
+        if (res.status === 503) {
+          alert(`Cannot start task: Agent is offline.\n\nThe task has been queued but cannot be executed until the agent comes back online.`);
+          return;
+        }
+        
+        throw new Error(errorData.message || 'Failed to start task');
+      }
+
+      const result: { message: string; jobId: string; taskName: string } = await res.json();
+      
+      alert(`✅ ${result.message}\n\nTask: ${result.taskName}\nJob ID: ${result.jobId}\n\nThe backup is now running. Check the Reports page for progress.`);
+      
+      try {
+        const { tasks: updatedTasks } = await fetchTasksData();
+        setTasks(updatedTasks);
+      } catch (refreshError) {
+        console.warn('Failed to refresh tasks:', refreshError);
+      }
+
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      alert(`❌ Error starting task: ${msg}`);
+      console.error('[Start Task Now]', e);
+    }
   };
 
   const handleToggleActive = async (taskId: string, currentStatus: boolean) => {

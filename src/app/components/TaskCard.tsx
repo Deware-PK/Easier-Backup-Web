@@ -79,10 +79,9 @@ export default function TaskCard({ task, onStartNow, onEdit, onToggleActive, onD
 
       <div className="flex items-center justify-end space-x-3 mt-auto pt-3 border-t border-gray-700">
         <button
-          title="Start Now (API not available)"
+          title="Start Now"
           onClick={() => onStartNow(task.id)}
-          className="text-gray-600 cursor-not-allowed"
-          disabled
+          className='hover:text-green-500 text-gray-400'
         >
           <FaPlay />
         </button>
