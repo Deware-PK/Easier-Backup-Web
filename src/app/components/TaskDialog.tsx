@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { type Task } from './TaskCard';
+import { MdLock } from 'react-icons/md'; // ADD: lock icon
 
 export interface Computer {
   id: string;
@@ -132,13 +133,56 @@ export default function TaskDialog({ isOpen, onClose, onSubmit, taskToEdit, comp
               <input type="text" id="name" name="name" value={formData.name || ''} onChange={handleChange} required className="input-field"/>
             </div>
             <div>
-              <label htmlFor="computer_id" className="label-text">Target Computer <span className="text-red-500">*</span></label>
-              <select id="computer_id" name="computer_id" value={formData.computer_id || ''} onChange={handleChange} required className="input-field" disabled={isEditing}>
-                 <option value="" disabled>Select a computer</option>
-                 {computers.map(comp => (
-                   <option key={comp.id} value={comp.id}>{comp.name} ({comp.os || 'N/A'})</option>
-                 ))}
-              </select>
+              <label htmlFor="computer_id" className="label-text">
+                Target Computer <span className="text-red-500">*</span>
+              </label>
+
+              {/* Wrapper for lock overlay */}
+              <div className="relative">
+                <select
+                  id="computer_id"
+                  name="computer_id"
+                  value={formData.computer_id || ''}
+                  onChange={handleChange}
+                  required
+                  disabled={isEditing}
+                  className="
+                    input-field pr-10
+                    disabled:bg-gray-700 disabled:text-gray-400 disabled:border-gray-700
+                    disabled:cursor-not-allowed
+                  "
+                  title={isEditing ? 'Cannot change target computer while editing an existing task' : undefined}
+                >
+                  <option value="" disabled>Select a computer</option>
+                  {computers.map(comp => (
+                    <option key={comp.id} value={comp.id}>
+                      {comp.name} ({comp.os || 'N/A'})
+                    </option>
+                  ))}
+                </select>
+
+                {isEditing && (
+                  <>
+                    {/* Lock icon on the right */}
+                    <MdLock
+                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 mx-2"
+                      aria-hidden
+                    />
+                    {/* Transparent overlay to show not-allowed cursor on hover */}
+                    <div
+                      className="absolute inset-0 cursor-not-allowed"
+                      title="Cannot change target computer while editing an existing task"
+                      aria-hidden
+                    />
+                  </>
+                )}
+              </div>
+
+              {isEditing && (
+                <p className="mt-1 text-xs text-gray-400 flex items-center gap-1">
+                  <MdLock className="inline-block" /> Target Computer is locked for existing tasks.
+                </p>
+              )}
             </div>
           </div>
            <div>
